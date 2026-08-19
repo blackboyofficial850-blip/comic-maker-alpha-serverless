@@ -1,4 +1,4 @@
-# Comic Maker Alpha — RunPod Serverless proof worker 1.2.8.4-alpha
+# Comic Maker Alpha — RunPod Serverless proof worker 1.2.8.5-alpha
 
 This worker removes the attached-Network-Volume datacenter restriction.
 
@@ -17,8 +17,8 @@ Required endpoint environment variables:
 - `CMA_ASSET_BUCKET` = your Network Volume ID
 - `CMA_ASSET_REGION` = `US-CA-2`
 - `CMA_ASSET_ENDPOINT` = `https://s3api-us-ca-2.runpod.io/`
-- `AWS_ACCESS_KEY_ID` = your RunPod S3 access/user ID
-- `AWS_SECRET_ACCESS_KEY` = your RunPod S3 secret
+- `CMA_S3_ACCESS_KEY` = your RunPod S3 access/user ID
+- `CMA_S3_SECRET_KEY` = your RunPod S3 secret
 
 For the proof:
 - Queue endpoint
@@ -29,3 +29,9 @@ For the proof:
 - Execution timeout: 1200 seconds
 - Prefer multiple 24 GB / 48 GB GPU pools
 - Allow all datacenters after detaching the Network Volume
+
+
+## 1.2.8.5 change
+- Uses direct S3 `GetObject` downloads instead of `boto3.download_file()`.
+- Avoids the automatic `HeadObject` request that returned HTTP 403 on the first live proof worker.
+- Uses CMA-specific S3 credential environment variables to avoid collisions with generic AWS variables.

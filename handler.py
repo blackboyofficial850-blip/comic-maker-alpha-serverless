@@ -106,14 +106,14 @@ def resolve_cached_snapshot(model_id: str) -> Path:
 
 
 def _s3_client():
-    access = os.environ.get("AWS_ACCESS_KEY_ID", "").strip()
-    secret = os.environ.get("AWS_SECRET_ACCESS_KEY", "").strip()
+    access = os.environ.get("CMA_S3_ACCESS_KEY", "").strip()
+    secret = os.environ.get("CMA_S3_SECRET_KEY", "").strip()
 
     if not ASSET_BUCKET:
         raise RuntimeError("CMA_ASSET_BUCKET is not set.")
     if not access or not secret:
         raise RuntimeError(
-            "AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY are not set. "
+            "CMA_S3_ACCESS_KEY / CMA_S3_SECRET_KEY are not set. "
             "Use the RunPod S3 API credentials for the asset volume."
         )
 
@@ -133,9 +133,26 @@ def _s3_client():
 
 
 def _download_object(client, key: str, local_path: Path) -> None:
+    """Download with GetObject directly.
+
+    RunPod's S3-compatible layer supports GetObject. Avoid boto3.download_file()
+    here because its transfer manager performs an automatic HeadObject first,
+    which is the operation that returned 403 on the first Serverless proof.
+    """
     local_path.parent.mkdir(parents=True, exist_ok=True)
     tmp = local_path.with_suffix(local_path.suffix + ".part")
-    client.download_file(ASSET_BUCKET, key, str(tmp))
+
+    response = client.get_object(Bucket=ASSET_BUCKET, Key=key)
+    body = response["Body"]
+
+    with tmp.open("wb") as out:
+        while True:
+            chunk = body.read(1024 * 1024)
+            if not chunk:
+                break
+            out.write(chunk)
+
+    body.close()
     tmp.replace(local_path)
 
 
